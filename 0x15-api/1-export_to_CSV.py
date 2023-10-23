@@ -1,35 +1,53 @@
 #!/usr/bin/python3
-
+"""script that fetches info about a given employee using an api
+and exports it in csv format
 """
-Python script that exports data in the CSV format
-"""
+import json
+import requests
+import sys
 
-from requests import get
-from sys import argv
-import csv
+
+base_url = 'https://jsonplaceholder.typicode.com'
 
 if __name__ == "__main__":
-    response = get('https://jsonplaceholder.typicode.com/todos/')
-    data = response.json()
 
-    row = []
-    response2 = get('https://jsonplaceholder.typicode.com/users')
-    data2 = response2.json()
+    user_id = sys.argv[1]
 
-    for i in data2:
-        if i['id'] == int(argv[1]):
-            employee = i['username']
+    # get user info e.g https://jsonplaceholder.typicode.com/users/1/
+    user_url = '{}/users?id={}'.format(base_url, user_id)
+    # print("user url is: {}".format(user_url))
 
-    with open(argv[1] + '.csv', 'w', newline='') as file:
-        writ = csv.writer(file, quoting=csv.QUOTE_ALL)
+    # get info from api
+    response = requests.get(user_url)
+    # pull data from api
+    data = response.text
+    # parse the data into JSON format
+    data = json.loads(data)
+    # extract user data, in this case, username of employee
+    user_name = data[0].get('username')
+    # print("id is: {}".format(user_id))
+    # print("name is: {}".format(user_name))
 
-        for i in data:
+    # get user info about todo tasks
+    # e.g https://jsonplaceholder.typicode.com/users/1/todos
+    tasks_url = '{}/todos?userId={}'.format(base_url, user_id)
+    # print("tasks url is: {}".format(tasks_url))
 
-            row = []
-            if i['userId'] == int(argv[1]):
-                row.append(i['userId'])
-                row.append(employee)
-                row.append(i['completed'])
-                row.append(i['title'])
+    # get info from api
+    response = requests.get(tasks_url)
+    # pull data from api
+    tasks = response.text
+    # parse the data into JSON format
+    tasks = json.loads(tasks)
 
-                writ.writerow(row)
+    # build the csv
+    builder = ""
+    for task in tasks:
+        builder += '"{}","{}","{}","{}"\n'.format(
+            user_id,
+            user_name,
+            task['completed'],  # or use get method
+            task['title']
+        )
+    with open('{}.csv'.format(user_id), 'w', encoding='UTF8') as myFile:
+        myFile.write(builder)
